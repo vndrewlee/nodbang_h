@@ -9,14 +9,12 @@
 #include "MIDIUSB.h"
 #include "Adafruit_NeoPixel.h"
 
-Button::Button(int pin_number, byte note, Adafruit_NeoPixel strip, int pixel_ix) {
+Button::Button(int pin_number, byte note) {
   pin = pin_number;
   pinMode(pin, INPUT_PULLUP);
-  switch_new = digitalRead(pin);
-  switch_old = digitalRead(pin);
-  midi_note = note;
-  strand = strip;
-  neopixel_ix = pixel_ix;
+  _switch_new = digitalRead(pin);
+  _switch_old = digitalRead(pin);
+  _note = note;
 }
 
 void Button::note_on(byte channel, byte pitch, byte velocity) {
@@ -30,35 +28,37 @@ void Button::note_off(byte channel, byte pitch, byte velocity) {
 }
 
 void Button::send_midi() {
-  if (switch_new == LOW && switch_old == HIGH) {
-    note_on(0, midi_note, 127);  // Channel 0, middle C, normal velocity
+  if (_switch_new == LOW && _switch_old == HIGH) {
+    note_on(0, _note, 127);  // Channel 0, middle C, normal velocity
     MidiUSB.flush();
   }
-  if (switch_new == HIGH && switch_old == LOW) {
-    note_off(0, midi_note, 127);   // Channel 0, middle C, normal velocity
+  if (_switch_new == HIGH && _switch_old == LOW) {
+    note_off(0, _note, 127);   // Channel 0, middle C, normal velocity
     MidiUSB.flush();
   }
 }
 
-void Button::set_color(uint16_t red, uint16_t green,uint16_t blue) {
-  r = red;
-  g = green;
-  b = blue;
+void Button::set_pixel(Adafruit_NeoPixel strand, int pixel_ix, uint16_t red, uint16_t green,uint16_t blue) {
+  _strand = strand;
+  _pixel_ix = pixel_ix;
+  _red = red;
+  _green = green;
+  _blue = blue;
 }
 
 void Button::flash_led() {
-  if (switch_new == LOW) {
-  strand.setPixelColor(neopixel_ix, strand.Color(r, g, b));
-  strand.show();
+  if (_switch_new == LOW) {
+  _strand.setPixelColor(_pixel_ix, _strand.Color(_red, _green, _blue));
+  _strand.show();
 } else {
-  strand.setPixelColor(neopixel_ix, strand.Color(255, 255, 255));
-  strand.show();
+  _strand.setPixelColor(_pixel_ix, _strand.Color(255, 255, 255));
+  _strand.show();
 }
 }
 
 void Button::refresh() {
-  switch_old = switch_new;
-  switch_new = digitalRead(pin);
+  _switch_old = _switch_new;
+  _switch_new = digitalRead(pin);
   send_midi();
   flash_led();
 }
